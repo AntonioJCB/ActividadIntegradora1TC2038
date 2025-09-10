@@ -98,6 +98,37 @@ for (int i = 0; i < n; i++) {
 return {start+1, start+bestLen}; 
 }
 
+//Substring comun mas largo
+
+pair<int,int> longestCommonSubstring(const string &s1, const string &s2) {
+    int n = (int)s1.size();
+    int m = (int)s2.size();
+    if (n == 0 || m == 0) return {-1,-1};
+
+    vector<int> prev(m+1, 0), cur(m+1, 0);
+    int maxLen = 0;
+    int endPos = -1;
+
+    for (int i = 1; i <= n; ++i) {
+        for (int j = 1; j <= m; ++j) {
+            if (s1[i-1] == s2[j-1]) {
+                cur[j] = prev[j-1] + 1;
+                if (cur[j] > maxLen) {
+                    maxLen = cur[j];
+                    endPos = i; // posición en s1 donde termina el substring (1-indexed)
+                }
+            } else {
+                cur[j] = 0;
+            }
+        }
+        fill(prev.begin(), prev.end(), 0);
+        swap(prev, cur);
+    }
+
+    if (maxLen == 0) return {-1,-1};
+    return {endPos - maxLen + 1, endPos}; // posiciones 1-indexed en s1
+}
+
 // Huffman Coding
 
 struct Node {
@@ -211,24 +242,34 @@ int main() {
     vector<string> transmissions = {transmission1, transmission2};
     vector<string> tnames = {"transmission1.txt", "transmission2.txt"};
 
-    // Para cada mcode, leer TODO el archivo, normalizar (unir en una sola secuencia) y buscar
     vector<pair<string,string>> mcodes;
     for (int i = 1; i <= 3; ++i) {
         string mcode = normalize(leerArchivo("mcode" + to_string(i) + ".txt"));
         string mname = "mcode" + to_string(i) + ".txt";
         mcodes.push_back({mname, mcode});
+    }
 
-        compararYImprimir("transmission1.txt", transmission1, mname, mcode);
-        compararYImprimir("transmission2.txt", transmission2, mname, mcode);
+    for (auto &m : mcodes) {
+        compararYImprimir("transmission1.txt", transmission1, m.first, m.second);
+        compararYImprimir("transmission2.txt", transmission2, m.first, m.second);
+    }
+
+        pair<int,int> pal1 = longestPalindrome(transmission1);
+        pair<int,int> pal2 = longestPalindrome(transmission2);
+
+        pair<int,int> lcs = longestCommonSubstring(transmission1, transmission2);
+        if (lcs.first != -1)
+            cout << "El substring comun mas largo se encuentra de " << lcs.first
+                << " a " << lcs.second << " en transmission1.txt\n";
+        else
+            cout << "No se encontro ningun substring comun entre transmission1 y transmission2.\n";
+
+
+        cout <<"El palindromo mas largo de transmission1 sencuentra de "<< pal1.first << " a " << pal1.second << "\n";
+        cout <<"El palindromo mas largo de transmission2 sencuentra de "<< pal2.first << " a " << pal2.second << "\n";
 
         analizarTransmision("transmission1.txt", transmission1, mcodes);
         analizarTransmision("transmission2.txt", transmission2, mcodes);
-    }
-
-    pair<int,int> pal1 = longestPalindrome(transmission1);
-    pair<int,int> pal2 = longestPalindrome(transmission2);
-
-    cout <<"El palindromo mas largo de transmission1 sencuentra de "<< pal1.first << " a " << pal1.second << "\n";
-    cout <<"El palindromo mas largo de transmission2 sencuentra de "<< pal2.first << " a " << pal2.second << "\n";
-    return 0;
+        
+        return 0;
 }
