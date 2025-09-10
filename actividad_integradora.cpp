@@ -52,6 +52,40 @@
             cout << tName << " vs " << mName << ": false\n";
     }
 
+    //Busqueda de palindromos
+    pair<int,int> longestPalindrome(const string &s) {
+    int n = (int)s.size();
+    if (n == 0) return {0, 0};
+
+    int bestLen = 1;
+    int start = 0;
+
+    auto expand = [&](int l, int r) {
+        while (l >= 0 && r < n && s[l] == s[r]) {
+            l--;
+            r++;
+        }
+        return pair<int,int>(l+1, r-1);
+    };
+
+    for (int i = 0; i < n; i++) {
+        // palíndromos impares
+        pair<int,int> p1 = expand(i, i);
+        if (p1.second - p1.first + 1 > bestLen) {
+            bestLen = p1.second - p1.first + 1;
+            start = p1.first;
+        }
+        // palíndromos pares
+        pair<int,int> p2 = expand(i, i+1);
+        if (p2.second - p2.first + 1 > bestLen) {
+            bestLen = p2.second - p2.first + 1;
+            start = p2.first;
+        }
+    }
+
+    return {start+1, start+bestLen}; 
+}
+
     int main() {
         // Leer y normalizar transmisiones
         string transmission1 = leerArchivo("transmission1.txt");
@@ -64,6 +98,12 @@
 
             compararYImprimir("transmission1.txt", transmission1, mname, mcode);
             compararYImprimir("transmission2.txt", transmission2, mname, mcode);
+
+                pair<int,int> pal1 = longestPalindrome(transmission1);
+                pair<int,int> pal2 = longestPalindrome(transmission2);
+
+                cout <<"El palindromo mas largo de transmission1 sencuentra de "<< pal1.first << " a " << pal1.second << "\n";
+                cout <<"El palindromo mas largo de transmission2 sencuentra de "<< pal2.first << " a " << pal2.second << "\n";
         }
         return 0;
     }
