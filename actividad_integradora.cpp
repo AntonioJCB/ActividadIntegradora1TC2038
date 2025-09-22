@@ -7,7 +7,9 @@
 #include <queue>
 #include <memory>
 #include <iomanip>
+#include <chrono> 
 using namespace std;
+
 
 string normalize(const string &s) {
     string res;
@@ -17,7 +19,7 @@ string normalize(const string &s) {
     return res;
 }
 
-// Subsecuencias
+// Construye tabla de prefijo-sufijo (failure function)
 vector<int> computeFailure(const string &P) {
     int m = (int)P.size();
     vector<int> f(m, 0);
@@ -29,6 +31,7 @@ vector<int> computeFailure(const string &P) {
     return f;
 }
 
+// Ejecuta KMP en texto T con patrón P
 vector<int> KMP(const string &T, const string &P) {
     vector<int> res;
     if (P.empty() || T.empty() || P.size() > T.size()) return res;
@@ -55,7 +58,6 @@ string leerArchivo(const string &ruta) {
     return buffer.str();
 }
 
-
 void compararYImprimir(const string &tName, const string &t, const string &mName, const string &m) {
     auto pos = KMP(t, m);
     if (!pos.empty())
@@ -64,41 +66,37 @@ void compararYImprimir(const string &tName, const string &t, const string &mName
         cout << tName << " vs " << mName << ": false\n";
 }
 
-//Busqueda de palindromos
 pair<int,int> longestPalindrome(const string &s) {
-int n = (int)s.size();
-if (n == 0) return {0, 0};
+    int n = (int)s.size();
+    if (n == 0) return {0, 0};
 
-int bestLen = 1;
-int start = 0;
+    int bestLen = 1;
+    int start = 0;
 
-auto expand = [&](int l, int r) {
-    while (l >= 0 && r < n && s[l] == s[r]) {
-        l--;
-        r++;
-    }
-    return pair<int,int>(l+1, r-1);
-};
+    auto expand = [&](int l, int r) {
+        while (l >= 0 && r < n && s[l] == s[r]) {
+            l--;
+            r++;
+        }
+        return pair<int,int>(l+1, r-1);
+    };
 
-for (int i = 0; i < n; i++) {
-    // palíndromos impares
-    pair<int,int> p1 = expand(i, i);
-    if (p1.second - p1.first + 1 > bestLen) {
-        bestLen = p1.second - p1.first + 1;
-        start = p1.first;
+    for (int i = 0; i < n; i++) {
+        // palíndromos impares
+        pair<int,int> p1 = expand(i, i);
+        if (p1.second - p1.first + 1 > bestLen) {
+            bestLen = p1.second - p1.first + 1;
+            start = p1.first;
+        }
+        // palíndromos pares
+        pair<int,int> p2 = expand(i, i+1);
+        if (p2.second - p2.first + 1 > bestLen) {
+            bestLen = p2.second - p2.first + 1;
+            start = p2.first;
+        }
     }
-    // palíndromos pares
-    pair<int,int> p2 = expand(i, i+1);
-    if (p2.second - p2.first + 1 > bestLen) {
-        bestLen = p2.second - p2.first + 1;
-        start = p2.first;
-    }
+    return {start+1, start+bestLen}; 
 }
-
-return {start+1, start+bestLen}; 
-}
-
-//Substring comun mas largo
 
 pair<int,int> longestCommonSubstring(const string &s1, const string &s2) {
     int n = (int)s1.size();
@@ -115,7 +113,7 @@ pair<int,int> longestCommonSubstring(const string &s1, const string &s2) {
                 cur[j] = prev[j-1] + 1;
                 if (cur[j] > maxLen) {
                     maxLen = cur[j];
-                    endPos = i; // posición en s1 donde termina el substring (1-indexed)
+                    endPos = i; 
                 }
             } else {
                 cur[j] = 0;
@@ -124,13 +122,12 @@ pair<int,int> longestCommonSubstring(const string &s1, const string &s2) {
         fill(prev.begin(), prev.end(), 0);
         swap(prev, cur);
     }
-
     if (maxLen == 0) return {-1,-1};
-    return {endPos - maxLen + 1, endPos}; // posiciones 1-indexed en s1
+    return {endPos - maxLen + 1, endPos}; 
 }
 
-// Huffman Coding
 
+// Nodo del árbol
 struct Node {
     char ch;
     int freq;
@@ -139,6 +136,7 @@ struct Node {
     Node(Node* l, Node* r) : ch('\0'), freq(l->freq + r->freq), left(l), right(r) {}
 };
 
+// Comparador para priority_queue
 struct Compare {
     bool operator()(Node* a, Node* b) {
         return a->freq > b->freq;
@@ -149,13 +147,13 @@ struct Compare {
 unordered_map<char,int> freqTable(const string &s) {
     unordered_map<char,int> freq;
     for (char c : s) {
-        if (c != '\n' && c != '\r') // ignorar saltos de línea
+        if (c != '\n' && c != '\r') 
             freq[c]++;
     }
     return freq;
 }
 
-// Construir árbol de Huffman
+// Construcción del árbol de Huffman
 Node* buildHuffman(const unordered_map<char,int>& freq) {
     priority_queue<Node*, vector<Node*>, Compare> pq;
     for (auto &p : freq) {
@@ -169,7 +167,7 @@ Node* buildHuffman(const unordered_map<char,int>& freq) {
     return pq.top();
 }
 
-// Construir códigos Huffman recursivamente
+// Construcción recursiva de los códigos
 void buildCodes(Node* root, string code, unordered_map<char,string>& codes) {
     if (!root) return;
     if (!root->left && !root->right) {
@@ -179,7 +177,7 @@ void buildCodes(Node* root, string code, unordered_map<char,string>& codes) {
     buildCodes(root->right, code+"1", codes);
 }
 
-// Calcular longitud promedio esperada (∑ p_i * |code_i|)
+// Longitud promedio esperada de Huffman
 double expectedLength(const unordered_map<char,int>& freq, const unordered_map<char,string>& codes, int total) {
     double avg = 0.0;
     for (auto &p : freq) {
@@ -189,7 +187,7 @@ double expectedLength(const unordered_map<char,int>& freq, const unordered_map<c
     return avg;
 }
 
-// Codificar un string y devolver longitud en bits
+// Longitud real codificada
 int encodeLength(const string &s, const unordered_map<char,string>& codes) {
     int len = 0;
     for (char c : s) {
@@ -225,13 +223,31 @@ void analizarTransmision(const string& tName, const string& t, const vector<pair
     // verificar cada mcode
     for (auto &m : mcodes) {
         int lenCode = encodeLength(m.second, codes);
-        // criterio: sospechoso si supera 2x el promedio * longitud original
         double expected = avg * m.second.size();
         if (lenCode > expected * 2.0) {
             cout << m.first << ": sospechoso " << lenCode << "\n";
         } else {
             cout << m.first << ": no-sospechoso " << lenCode << "\n";
         }
+
+        // Benchmark: comparar búsqueda en texto original vs comprimido
+        auto start1 = chrono::high_resolution_clock::now();
+        auto resOriginal = KMP(t, m.second);
+        auto end1 = chrono::high_resolution_clock::now();
+        auto dur1 = chrono::duration_cast<chrono::microseconds>(end1 - start1).count();
+
+        string encodedT, encodedM;
+        for (char c : t) if (codes.count(c)) encodedT += codes[c];
+        for (char c : m.second) if (codes.count(c)) encodedM += codes[c];
+
+        auto start2 = chrono::high_resolution_clock::now();
+        auto resEncoded = KMP(encodedT, encodedM);
+        auto end2 = chrono::high_resolution_clock::now();
+        auto dur2 = chrono::duration_cast<chrono::microseconds>(end2 - start2).count();
+
+        cout << "Benchmark búsqueda - " << m.first << "\n";
+        cout << "   Original: " << dur1 << " us, coincidencias: " << resOriginal.size() << "\n";
+        cout << "   Codificado: " << dur2 << " us, coincidencias: " << resEncoded.size() << "\n";
     }
 }
 
@@ -242,6 +258,7 @@ int main() {
     vector<string> transmissions = {transmission1, transmission2};
     vector<string> tnames = {"transmission1.txt", "transmission2.txt"};
 
+    // Leer mcodes
     vector<pair<string,string>> mcodes;
     for (int i = 1; i <= 3; ++i) {
         string mcode = normalize(leerArchivo("mcode" + to_string(i) + ".txt"));
@@ -249,27 +266,30 @@ int main() {
         mcodes.push_back({mname, mcode});
     }
 
+    // Comparar transmisiones contra mcodes
     for (auto &m : mcodes) {
         compararYImprimir("transmission1.txt", transmission1, m.first, m.second);
         compararYImprimir("transmission2.txt", transmission2, m.first, m.second);
     }
 
-        pair<int,int> pal1 = longestPalindrome(transmission1);
-        pair<int,int> pal2 = longestPalindrome(transmission2);
+    // Palíndromos más largos
+    pair<int,int> pal1 = longestPalindrome(transmission1);
+    pair<int,int> pal2 = longestPalindrome(transmission2);
 
-        pair<int,int> lcs = longestCommonSubstring(transmission1, transmission2);
-        if (lcs.first != -1)
-            cout << "El substring comun mas largo se encuentra de " << lcs.first
-                << " a " << lcs.second << " en transmission1.txt\n";
-        else
-            cout << "No se encontro ningun substring comun entre transmission1 y transmission2.\n";
+    cout <<"El palindromo mas largo de transmission1 se encuentra de "<< pal1.first << " a " << pal1.second << "\n";
+    cout <<"El palindromo mas largo de transmission2 se encuentra de "<< pal2.first << " a " << pal2.second << "\n";
 
+    // Substring común
+    pair<int,int> lcs = longestCommonSubstring(transmission1, transmission2);
+    if (lcs.first != -1)
+        cout << "El substring comun mas largo se encuentra de " << lcs.first
+            << " a " << lcs.second << " en transmission1.txt\n";
+    else
+        cout << "No se encontro ningun substring comun entre transmission1 y transmission2.\n";
 
-        cout <<"El palindromo mas largo de transmission1 sencuentra de "<< pal1.first << " a " << pal1.second << "\n";
-        cout <<"El palindromo mas largo de transmission2 sencuentra de "<< pal2.first << " a " << pal2.second << "\n";
-
-        analizarTransmision("transmission1.txt", transmission1, mcodes);
-        analizarTransmision("transmission2.txt", transmission2, mcodes);
+    // Análisis con Huffman + Benchmark
+    analizarTransmision("transmission1.txt", transmission1, mcodes);
+    analizarTransmision("transmission2.txt", transmission2, mcodes);
         
-        return 0;
+    return 0;
 }
